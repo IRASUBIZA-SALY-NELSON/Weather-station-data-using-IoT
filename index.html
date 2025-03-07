@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Environmental Monitoring Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1d1f21;
+            color: #fff;
+            text-align: center;
+            margin-top: 40px;
+            animation: fadeIn 2s ease-out;
+        }
+        .container {
+            width: 85%;
+            margin: auto;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+            background: #2c3e50;
+            padding: 20px;
+            transition: background 0.3s ease-in-out;
+        }
+        h2 {
+            color: #e74c3c;
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        canvas {
+            background: #34495e;
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        .hover-effect:hover {
+            background-color: #2980b9;
+            transform: scale(1.05);
+            transition: all 0.3s ease-in-out;
+        }
+        footer {
+            margin-top: 40px;
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        footer a {
+            color: #e74c3c;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+    <h2 class="hover-effect">Environmental Monitoring Dashboard</h2>
+    <div class="container">
+        <canvas id="environmentChart"></canvas>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 IRASUBIZA SALY NELSON. All rights reserved.</p>
+    </footer>
+
+    <script>
+        const ctx = document.getElementById('environmentChart').getContext('2d');
+
+        const environmentChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Air Quality (AQI)',
+                        borderColor: '#e67e22',
+                        backgroundColor: 'rgba(230, 126, 34, 0.2)',
+                        data: [],
+                        borderWidth: 2,
+                    },
+                    {
+                        label: 'Temperature (°F)',
+                        borderColor: '#2ecc71',
+                        backgroundColor: 'rgba(46, 204, 113, 0.2)',
+                        data: [],
+                        borderWidth: 2,
+                    }
+                ]
+            },
+            options: {
+                scales: {
+                    x: {
+                        title: { display: true, text: "Time (HH:MM)" },
+                        grid: { display: false }
+                    },
+                    y: {
+                        title: { display: true, text: "Measurements" },
+                        grid: { color: '#7f8c8d' }
+                    }
+                },
+                animations: {
+                    tension: {
+                        duration: 1000,
+                        easing: 'linear',
+                        from: 0.3,
+                        to: 0,
+                        loop: true
+                    }
+                }
+            }
+        });
+
+        async function fetchMonitoringData() {
+            try {
+                const response = await fetch("http://localhost:3000/data");
+                const data = await response.json();
+                
+                let timestamps = [];
+                let airQuality = [];
+                let temperatures = [];
+
+                data.forEach(entry => {
+                    timestamps.push(entry.timestamp.split(" ")[1]); // Extract time only
+                    if (entry.topic.includes("air_quality")) {
+                        airQuality.push(parseFloat(entry.value));
+                    } else if (entry.topic.includes("temperature")) {
+                        temperatures.push(parseFloat(entry.value));
+                    }
+                });
+
+                environmentChart.data.labels = timestamps;
+                environmentChart.data.datasets[0].data = airQuality;
+                environmentChart.data.datasets[1].data = temperatures;
+                environmentChart.update();
+
+            } catch (error) {
+                console.error("Error fetching data:", error);
+            }
+        }
+
+        setInterval(fetchMonitoringData, 30000);
+        fetchMonitoringData();
+    </script>
+
+</body>
+</html>
